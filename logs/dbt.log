@@ -1,0 +1,30 @@
+[0m18:39:34.799170 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000017CC6B30F80>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000017CCA057890>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000017CCA054B60>]}
+
+
+============================== 18:39:34.805009 | 53f05329-f221-4e6f-ad42-3bd6eb235901 ==============================
+[0m18:39:34.805009 [info ] [MainThread]: Running with dbt=1.11.11
+[0m18:39:34.805009 [debug] [MainThread]: running dbt with arguments {'static_parser': 'True', 'no_print': 'None', 'version_check': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'target_path': 'None', 'printer_width': '80', 'write_json': 'True', 'empty': 'None', 'log_cache_events': 'False', 'introspect': 'True', 'cache_selected_only': 'False', 'log_format': 'default', 'debug': 'False', 'fail_fast': 'False', 'profiles_dir': 'C:\\Users\\j2rel\\.dbt', 'send_anonymous_usage_stats': 'True', 'quiet': 'False', 'warn_error': 'None', 'partial_parse': 'True', 'use_colors': 'True', 'invocation_command': 'dbt init genomics', 'indirect_selection': 'eager', 'use_experimental_parser': 'False', 'log_path': 'logs'}
+[0m18:39:34.830975 [info ] [MainThread]: Creating dbt configuration folder at C:\Users\j2rel\.dbt
+[0m18:39:34.833731 [debug] [MainThread]: Starter project path: C:\Users\j2rel\Desktop\haptophyte-calcification\haptocalc\Lib\site-packages\dbt\include\starter_project
+[0m18:39:34.858417 [info ] [MainThread]: 
+Your new dbt project "genomics" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m18:39:34.858417 [info ] [MainThread]: Setting up your profile.
+[0m18:39:50.067959 [info ] [MainThread]: Profile genomics written to C:\Users\j2rel\.dbt\profiles.yml using target's sample configuration. Once updated, you'll be able to start developing with dbt.
+[0m18:39:50.067959 [debug] [MainThread]: Command `dbt init` succeeded at 18:39:50.067959 after 15.38 seconds
+[0m18:39:50.069421 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000017CC723E330>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000017CCB194E00>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000017CC91A6DB0>]}
+[0m18:39:50.069421 [debug] [MainThread]: Flushing usage events
+[0m18:39:50.745445 [debug] [MainThread]: An error was encountered while trying to flush usage events

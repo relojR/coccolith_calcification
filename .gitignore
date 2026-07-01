@@ -1,0 +1,4 @@
+haptocalc/
+warehouse.duckdb
+data/raw/
+__pycache__/
