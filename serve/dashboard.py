@@ -3,10 +3,8 @@ Haptophyte calcification - presence/absence dashboard (MVP).
 
 Reads the dbt-built models from warehouse.duckdb and lets you explore which
 gene families (orthogroups) are present across calcifying vs non-calcifying
-species.
+species, and inspect the member proteins of any orthogroup.
 
-Run from the PROJECT ROOT:
-    streamlit run serve/dashboard.py
 """
 
 from pathlib import Path
@@ -16,9 +14,6 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# warehouse.duckdb lives at the project root, one level up from serve/.
-# Resolving relative to THIS file means it works no matter where you launch from
-# (no more root-vs-genomics working-directory surprises).
 DB_PATH = Path(__file__).resolve().parent.parent / "warehouse.duckdb"
 
 CALC_COLOR = "#2a9d8f"
@@ -38,7 +33,6 @@ if not DB_PATH.exists():
 
 @st.cache_resource
 def get_con():
-    # read_only so the dashboard never locks the file or fights with dbt.
     return duckdb.connect(str(DB_PATH), read_only=True)
 
 
@@ -94,10 +88,7 @@ coverage = run(
 coverage["status"] = coverage.is_calcifying.map({True: "Calcifying", False: "Non-calcifying"})
 
 fig = px.bar(
-    coverage,
-    x="name",
-    y="n_present",
-    color="status",
+    coverage, x="name", y="n_present", color="status",
     color_discrete_map=COLOR_MAP,
     labels={"name": "", "n_present": "Orthogroups present", "status": ""},
 )
@@ -109,8 +100,6 @@ st.divider()
 # ------------------------------------------------------------------- explorer
 st.subheader("Find and explore candidate gene families")
 
-# Per-orthogroup presence counts (calc vs non-calc). Computed once, then
-# filtered in pandas so the sliders respond instantly with no re-query.
 candidates = run(
     """
     with totals as (
@@ -149,13 +138,9 @@ st.caption(
 )
 f1, f2 = st.columns(2)
 with f1:
-    min_calc = st.slider(
-        "Minimum calcifying species present", 0, n_calc, n_calc
-    )
+    min_calc = st.slider("Minimum calcifying species present", 0, n_calc, n_calc)
 with f2:
-    max_noncalc = st.slider(
-        "Maximum non-calcifying species present", 0, n_noncalc, 0
-    )
+    max_noncalc = st.slider("Maximum non-calcifying species present", 0, n_noncalc, 0)
 
 filtered = candidates[
     (candidates.calc_present >= min_calc)
@@ -169,37 +154,45 @@ st.caption(
 
 col_l, col_r = st.columns([1, 2])
 
+# display_df is reset_index'd so row-selection positions map cleanly
+display_df = filtered.head(500).reset_index(drop=True)
+
 with col_l:
-    st.markdown("**Matching orthogroups**")
-    st.dataframe(
-        filtered.head(500),
+    st.markdown("**Matching orthogroups** \u2014 click a row to inspect it")
+    event = st.dataframe(
+        display_df,
         height=430,
         use_container_width=True,
         hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="cand_table",
     )
+    typed = st.text_input("...or type any orthogroup ID (e.g. OG0000123)", "").strip()
+
+# --- decide which orthogroup is active ---
+og = None
+if typed:
+    og = typed
+elif event.selection.rows:
+    og = display_df.iloc[event.selection.rows[0]]["orthogroup_id"]
+elif len(display_df):
+    og = display_df.iloc[0]["orthogroup_id"]  # default to top-ranked match
 
 with col_r:
-    options = filtered.orthogroup_id.head(500).tolist()
-    if options:
-        picked = st.selectbox("Pick a matching orthogroup", options, index=0)
-    else:
-        picked = None
-        st.info("No orthogroups match the current filter. Loosen the sliders, or type an ID below.")
-
-    typed = st.text_input("...or type any orthogroup ID (e.g. OG0000123)", "").strip()
-    og = typed if typed else picked
-
-    if not og:
-        st.stop()
-    if og not in valid_ids:
+    if og is None:
+        st.info("No orthogroups match the current filter. Loosen the sliders, or type an ID.")
+    elif og not in valid_ids:
         st.warning(f"No orthogroup '{og}' found in the data.")
     else:
         row = candidates[candidates.orthogroup_id == og].iloc[0]
+        st.markdown(f"### {og}")
         m1, m2, m3 = st.columns(3)
         m1.metric("Calcifiers with gene", f"{int(row.calc_present)} / {n_calc}")
         m2.metric("Non-calcifiers with gene", f"{int(row.noncalc_present)} / {n_noncalc}")
         m3.metric("Presence difference", f"{row.presence_diff:+.0%}")
 
+        # presence bar chart across species
         detail = run(
             "select "
             "coalesce(nullif(s.species_name,''), p.species_label) as name, "
@@ -210,15 +203,38 @@ with col_r:
         )
         detail["status"] = detail.is_calcifying.map({True: "Calcifying", False: "Non-calcifying"})
         detail = detail.sort_values(["is_calcifying", "gene_count"], ascending=[False, False])
-
         fig2 = px.bar(
-            detail,
-            x="name",
-            y="gene_count",
-            color="status",
+            detail, x="name", y="gene_count", color="status",
             color_discrete_map=COLOR_MAP,
             labels={"name": "", "gene_count": "Genes in family", "status": ""},
         )
-        fig2.update_layout(xaxis_tickangle=-45, height=400, legend_title="")
+        fig2.update_layout(xaxis_tickangle=-45, height=340, legend_title="")
         st.plotly_chart(fig2, use_container_width=True)
+
+        # member proteins grouped by species
+        members = run(
+            "select "
+            "coalesce(nullif(s.species_name,''), m.species_label) as species, "
+            "s.is_calcifying, m.protein_id "
+            "from stg_orthogroup_membership m "
+            "join stg_species s using (species_label) "
+            f"where m.orthogroup_id = '{og}' "
+            "order by s.is_calcifying desc, species, protein_id"
+        )
+        members["status"] = members.is_calcifying.map({True: "Calcifying", False: "Non-calcifying"})
+
+        st.markdown(f"**Member proteins** \u2014 {len(members):,} across "
+                    f"{members.species.nunique()} species")
+        st.dataframe(
+            members[["species", "status", "protein_id"]],
+            height=280,
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.download_button(
+            "Download protein IDs (CSV)",
+            members[["species", "status", "protein_id"]].to_csv(index=False),
+            file_name=f"{og}_members.csv",
+            mime="text/csv",
+        )
 
