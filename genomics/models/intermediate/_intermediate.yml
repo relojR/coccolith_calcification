@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: int_orthogroup_presence
+    description: "Presence/absence matrix: every orthogroup x every species."
+    columns:
+      - name: species_label
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_species')
+              field: species_label
+      - name: is_present
+        tests:
+          - not_null
+      - name: gene_count
+        tests:
+          - not_null
