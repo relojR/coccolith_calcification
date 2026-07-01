@@ -42,7 +42,7 @@ def run(sql: str) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------- header
-st.title("Haptophyte calcification - gene family explorer")
+st.title("Haptophyte calcification - Orthogroup (gene family) explorer")
 st.caption(
     "Comparative genomics of 27 haptophyte species: which orthogroups "
     "are present in calcifying vs. non-calcifying species?"
