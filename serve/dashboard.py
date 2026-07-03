@@ -226,10 +226,10 @@ with tab_overview:
 
     with st.container(key="section-metrics"):
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Species", n_species)
-        c2.metric("Calcifying", n_calc)
-        c3.metric("Non-calcifying", n_noncalc)
-        c4.metric("Gene families", f"{n_og:,}")
+        c1.metric("Total Species analyzed", n_species)
+        c2.metric("Calcifying species", n_calc)
+        c3.metric("Non-calcifying species", n_noncalc)
+        c4.metric("Orthogroups", f"{n_og:,}")
 
     with st.container(key="section-coverage"):
         st.subheader("Gene family coverage per species")
