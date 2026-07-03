@@ -11,6 +11,7 @@ import duckdb
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
 DB_PATH = Path(__file__).resolve().parent.parent / "warehouse.duckdb"
 
@@ -52,6 +53,11 @@ def get_con():
 @st.cache_data
 def run(sql: str) -> pd.DataFrame:
     return get_con().execute(sql).df()
+
+
+def request_scroll():
+    """Fired by the picker/search on_change so we only scroll on real user input."""
+    st.session_state["scroll_to_detail"] = True
 
 
 # header
@@ -125,17 +131,23 @@ with st.sidebar:
     st.markdown("**Select an orthogroup**")
     options = filtered.orthogroup_id.head(500).tolist()
     if options:
-        picked = st.selectbox("Pick a matching orthogroup", options, index=0)
+        picked = st.selectbox(
+            "Pick a matching orthogroup to see more details about it", options, index=0,
+            on_change=request_scroll,
+        )
     else:
         picked = None
-        st.info("No matches. Loosen the sliders, or search an ID below.")
+        st.info("No matches. Loosen the sliders, or search for an existing ID below.")
 
-    typed = st.text_input("Or search any orthogroup ID (e.g. OG0000123)", "").strip()
+    typed = st.text_input(
+        "Or search any orthogroup ID (e.g. OG0000123)", "",
+        on_change=request_scroll,
+    ).strip()
 
-# active orthogroup: typed search overrides the sidebar pick
+
 og = typed if typed else picked
 
-# TABS
+#  TABS
 tab_finder, tab_overview = st.tabs(["Candidate Finder", "Dataset Overview"])
 
 # Candidate Finder
@@ -245,3 +257,24 @@ with tab_overview:
         )
         fig.update_layout(xaxis_tickangle=-45, height=450, legend_title="")
         st.plotly_chart(fig, use_container_width=True)
+
+
+if st.session_state.get("scroll_to_detail"):
+
+    st.session_state["scroll_nonce"] = st.session_state.get("scroll_nonce", 0) + 1
+    nonce = st.session_state["scroll_nonce"]
+
+    scroll_html = """
+        <script>
+        // scroll nonce __NONCE__
+        setTimeout(function () {
+            try {
+                var el = window.parent.document.querySelector('.st-key-section-detail');
+                if (el) { el.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+            } catch (e) {}
+        }, 100);
+        </script>
+    """.replace("__NONCE__", str(nonce))
+
+    components.html(scroll_html, height=0)
+    st.session_state["scroll_to_detail"] = False
